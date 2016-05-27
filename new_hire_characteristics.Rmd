@@ -1,0 +1,283 @@
+---
+output: html_document
+---
+Characteristics of new hires
+========================================================
+We've been analysing new hires (people starting jobs in the previous 3 months) by occupation and qualification (and region)as part of our skills work.
+
+As we've worked out how to generate datasets of new hires, we can cut them any sensible way (and some not so sensible). 
+
+Using 8 quarter pooled datasets of new hires at UK level, we have done occupation (3-digit at region, 4-digit at national), qualification level.
+
+If we have equivalent pooled datasets for pre-recession, recession and post-recession periods, we can illustrate changes in absolute numbers of new hires, and changes in the breakdowns by:
+
+* age
+* gender
+* ethnicity
+* disability
+* contract type
+* as well as region, qualification and occupation
+* Not sure I want to go into sector - although I trust LFS sectors more than employer-based (the opposite of ONS)
+
+N.B. New hires are weighted to high-turnover occupations, and do include people moving from previous jobs.
+
+### Dataset preparation
+
+Use four time periods where available, 1996-97, 2009-7, 2009-10, 2012-13 so can use bar charts. Alternatively line charts with superimposed rectangles (but bars are easier).
+
+```{r required_packages, cache=TRUE, echo=FALSE}
+require(memisc)
+require(survey)
+```
+
+```{r load_data, cache=TRUE, echo=FALSE}
+list_files <- list.files("K:/data/LFS/Quarterly", pattern=glob2rx("qlfs*.sav"), full.names=TRUE)
+#1996-97
+aj96 <- spss.system.file(list_files[19])
+aj97 <- spss.system.file(list_files[20])
+jm96 <- spss.system.file(list_files[40])
+jm97 <- spss.system.file(list_files[41])
+js96 <- spss.system.file(list_files[61])
+js97 <- spss.system.file(list_files[62])
+od96 <- spss.system.file(list_files[82])
+od97 <- spss.system.file(list_files[83])
+# Subset data
+aj96.data <- subset(aj96, select=c(emplen, age, sex, ethcen, govtor, hiquald, socmajm, inecacr, ftpt, jobtyp, jobtmp, pwt07))
+aj97.data <- subset(aj97, select=c(emplen, age, sex, ethcen, govtor, hiquald, socmajm, inecacr, ftpt, jobtyp, jobtmp, pwt07))
+jm96.data <- subset(jm96, select=c(emplen, age, sex, ethcen, govtor, hiquald, socmajm, inecacr, ftpt, jobtyp, jobtmp, pwt07))
+jm97.data <- subset(jm97, select=c(emplen, age, sex, ethcen, govtor, hiquald, socmajm, inecacr, ftpt, jobtyp, jobtmp, pwt07))
+js96.data <- subset(js96, select=c(emplen, age, sex, ethcen, govtor, hiquald, socmajm, inecacr, ftpt, jobtyp, jobtmp, pwt07))
+js97.data <- subset(js97, select=c(emplen, age, sex, ethcen, govtor, hiquald, socmajm, inecacr, ftpt, jobtyp, jobtmp, pwt07))
+od96.data <- subset(od96, select=c(emplen, age, sex, ethcen, govtor, hiquald, socmajm, inecacr, ftpt, jobtyp, jobtmp, pwt07))
+od97.data <- subset(od97, select=c(emplen, age, sex, ethcen, govtor, hiquald, socmajm, inecacr, ftpt, jobtyp, jobtmp, pwt07))
+
+measurement(aj96.data$age) <- "interval"
+measurement(aj97.data$age) <- "interval"
+measurement(jm96.data$age) <- "interval"
+measurement(jm97.data$age) <- "interval"
+measurement(js96.data$age) <- "interval"
+measurement(js97.data$age) <- "interval"
+measurement(od96.data$age) <- "interval"
+measurement(od97.data$age) <- "interval"
+
+measurement(aj96.data$pwt07) <- "interval"
+measurement(aj97.data$pwt07) <- "interval"
+measurement(jm96.data$pwt07) <- "interval"
+measurement(jm97.data$pwt07) <- "interval"
+measurement(js96.data$pwt07) <- "interval"
+measurement(js97.data$pwt07) <- "interval"
+measurement(od96.data$pwt07) <- "interval"
+measurement(od97.data$pwt07) <- "interval"
+
+pooled9697 <- rbind(as.data.frame(aj96.data),
+                    as.data.frame(aj97.data),
+                    as.data.frame(jm96.data),
+                    as.data.frame(jm97.data),
+                    as.data.frame(js96.data),
+                    as.data.frame(js97.data),
+                    as.data.frame(od96.data),
+                    as.data.frame(od97.data))
+pooled969b <- subset(pooled9697, emplen == "Less than 3 months")
+pooled969b <- subset(pooled969b, age < 65)
+
+#2006-07
+aj06 <- spss.system.file(list_files[7])
+aj07 <- spss.system.file(list_files[8])
+jm06 <- spss.system.file(list_files[29])
+jm07 <- spss.system.file(list_files[30])
+js06 <- spss.system.file(list_files[50])
+js07 <- spss.system.file(list_files[51])
+od06 <- spss.system.file(list_files[71])
+od07 <- spss.system.file(list_files[72])
+# Subset data
+aj06.data <- subset(aj06, select=c(emplen, age, sex, ethcen6, govtor, hiqual5d, sc2kmmj, inecac05, ftpt, jobtyp, jobtmp, pwt07, discurr))
+aj07.data <- subset(aj07, select=c(emplen, age, sex, ethcen6, govtor, hiqual5d, sc2kmmj, inecac05, ftpt, jobtyp, jobtmp, pwt07 = PWT09, discurr))
+jm06.data <- subset(jm06, select=c(emplen, age, sex, ethcen6, govtor, hiqual5d, sc2kmmj, inecac05, ftpt, jobtyp, jobtmp, pwt07, discurr))
+jm07.data <- subset(jm07, select=c(emplen, age, sex, ethcen6, govtor, hiqual5d, sc2kmmj, inecac05, ftpt, jobtyp, jobtmp, pwt07 = PWT09, discurr))
+js06.data <- subset(js06, select=c(emplen, age, sex, ethcen6, govtor, hiqual5d, sc2kmmj, inecac05, ftpt, jobtyp, jobtmp, pwt07 = PWT09, discurr))
+js07.data <- subset(js07, select=c(emplen, age, sex, ethcen6, govtor, hiqual5d, sc2kmmj, inecac05, ftpt, jobtyp, jobtmp, pwt07 = PWT09, discurr))
+od06.data <- subset(od06, select=c(emplen, age, sex, ethcen6, govtor, hiqual5d, sc2kmmj, inecac05, ftpt, jobtyp, jobtmp, pwt07 = PWT09, discurr))
+od07.data <- subset(od07, select=c(emplen, age, sex, ethcen6, govtor, hiqual5d, sc2kmmj, inecac05, ftpt, jobtyp, jobtmp, pwt07 = PWT09, discurr))
+
+measurement(aj06.data$age) <- "interval"
+measurement(aj07.data$age) <- "interval"
+measurement(jm06.data$age) <- "interval"
+measurement(jm07.data$age) <- "interval"
+measurement(js06.data$age) <- "interval"
+measurement(js07.data$age) <- "interval"
+measurement(od06.data$age) <- "interval"
+measurement(od07.data$age) <- "interval"
+
+measurement(aj06.data$pwt07) <- "interval"
+measurement(aj07.data$pwt07) <- "interval"
+measurement(jm06.data$pwt07) <- "interval"
+measurement(jm07.data$pwt07) <- "interval"
+measurement(js06.data$pwt07) <- "interval"
+measurement(js07.data$pwt07) <- "interval"
+measurement(od06.data$pwt07) <- "interval"
+measurement(od07.data$pwt07) <- "interval"
+
+pooled0607 <- rbind(as.data.frame(aj06.data),
+                    as.data.frame(aj07.data),
+                    as.data.frame(jm06.data),
+                    as.data.frame(jm07.data),
+                    as.data.frame(js06.data),
+                    as.data.frame(js07.data),
+                    as.data.frame(od06.data),
+                    as.data.frame(od07.data))
+pooled069b <- subset(pooled0607, emplen == "Less than 3 months")
+pooled069b <- subset(pooled069b, age < 65)
+# 2009-10
+aj09 <- spss.system.file(list_files[10])
+aj10 <- spss.system.file(list_files[11])
+jm09 <- spss.system.file(list_files[32])
+jm10 <- spss.system.file(list_files[33])
+js09 <- spss.system.file(list_files[53])
+js10 <- spss.system.file(list_files[54])
+od09 <- spss.system.file(list_files[74])
+od10 <- spss.system.file(list_files[75])
+# Subset data
+aj09.data <- subset(aj09, select=c(emplen, age, sex, ethcen6, govtor, hiqual8d, sc2kmmj, inecac05, ftpt, jobtyp, jobtmp, pwt07=PWT09, discurr))
+aj10.data <- subset(aj10, select=c(emplen, age, sex, ethcen6, govtor, hiqual8d, sc2kmmj, inecac05, ftpt, jobtyp, jbtp10, pwt07 = pwt09, discurr))
+jm09.data <- subset(jm09, select=c(emplen, age, sex, ethcen6, govtor, hiqual8d, sc2kmmj, inecac05, ftpt, jobtyp, jobtmp, pwt07=PWT09, discurr))
+jm10.data <- subset(jm10, select=c(emplen, age, sex, ethcen6, govtor, hiqual8d, sc2kmmj, inecac05, ftpt, jobtyp, jbtp10, pwt07 = pwt09, discurr))
+js09.data <- subset(js09, select=c(emplen, age, sex, ethcen6, govtor, hiqual8d, sc2kmmj, inecac05, ftpt, jobtyp, jobtmp, pwt07 = PWT09, discurr))
+js10.data <- subset(js10, select=c(emplen, age, sex, ethcen6, govtor, hiqual8d, sc2kmmj, inecac05, ftpt, jobtyp, jbtp10, pwt07 = pwt09, discurr))
+od09.data <- subset(od09, select=c(emplen, age, sex, ethcen6, govtor, hiqual8d, sc2kmmj, inecac05, ftpt, jobtyp, jobtmp, pwt07 = pwt09, discurr))
+od10.data <- subset(od10, select=c(emplen, age, sex, ethcen6, govtor, hiqual8d, sc2kmmj, inecac05, ftpt, jobtyp, jbtp10, pwt07 = pwt09, discurr))
+
+measurement(aj09.data$age) <- "interval"
+measurement(aj10.data$age) <- "interval"
+measurement(jm09.data$age) <- "interval"
+measurement(jm10.data$age) <- "interval"
+measurement(js09.data$age) <- "interval"
+measurement(js10.data$age) <- "interval"
+measurement(od09.data$age) <- "interval"
+measurement(od10.data$age) <- "interval"
+
+measurement(aj09.data$pwt07) <- "interval"
+measurement(aj10.data$pwt07) <- "interval"
+measurement(jm09.data$pwt07) <- "interval"
+measurement(jm10.data$pwt07) <- "interval"
+measurement(js09.data$pwt07) <- "interval"
+measurement(js10.data$pwt07) <- "interval"
+measurement(od09.data$pwt07) <- "interval"
+measurement(od10.data$pwt07) <- "interval"
+
+pooled09 <- rbind(as.data.frame(aj09.data),
+                    as.data.frame(jm09.data),
+                    as.data.frame(js09.data),
+                    as.data.frame(od09.data))
+pooled10 <- rbind(as.data.frame(aj10.data),
+                    as.data.frame(jm10.data),
+                    as.data.frame(js10.data),
+                    as.data.frame(od10.data))
+pooled10$jobtmp <- recode(pooled10$jbtp10, 
+                          "Seasonal work" <- "seasonal work",
+                          "Contract for fixed period, fixed task" <- "contract for fixed period or fixed task",
+                          "Agency temping" <- "working for employment agency",
+                          "Casual work" <- "casual type of work", 
+                          "Not permanent in some other way" <- "some other way")
+pooled10 <- pooled10[,c(1:10,12:14)]
+pooled0910 <- rbind(pooled09,pooled10)
+pooled099b <- subset(pooled0910, emplen == "Less than 3 months")
+pooled099b <- subset(pooled099b, age < 65)
+
+#2011-13
+
+aj12 <- spss.system.file(list_files[13])
+aj13 <- spss.system.file(list_files[14])
+#aj11 <- spss.system.file(list_files[12])
+jm12 <- spss.system.file(list_files[35])
+jm13 <- spss.system.file(list_files[36])
+js12 <- spss.system.file(list_files[56])
+js13 <- spss.system.file(list_files[57])
+od12 <- spss.system.file(list_files[78])
+od13 <- spss.system.file(list_files[79])
+# Subset data
+aj12.data <- subset(aj12, select=c(emplen = EMPLEN, age= AGE, sex= SEX , ethukeul = ETHUKEUL , govtor = GOVTOR, hiqul11d = HIQUL11D, sc10mmj = SC10MMJ , inecac05 = INECAC05, ftpt = FTPT , jobtyp = JOBTYP, jbtp101 = JBTP101, pwt07=PWT11, discurr = DISCURR))
+aj13.data <- subset(aj13, select=c(emplen = EMPLEN, age= AGE, sex= SEX , ethukeul = ETHUKEUL , govtor = GOVTOR, hiqul11d = HIQUL11D, sc10mmj = SC10MMJ , inecac05 = INECAC05, ftpt = FTPT , jobtyp = JOBTYP, jbtp101 = JBTP101, pwt07=PWT11, discurr = DISCURR))
+#aj11.data <- subset(aj11, select=c(emplen, age, sex, ethukeul, govtor, hiqul11d, sc10mmj, inecac05, ftpt, jobtyp, jbtp101, pwt07=pwt10, discurr))
+jm13.data <- subset(jm13, select=c(emplen = EMPLEN, age= AGE, sex= SEX , ethukeul = ETHUKEUL , govtor = GOVTOR, hiqul11d = HIQUL11D, sc10mmj = SC10MMJ , inecac05 = INECAC05, ftpt = FTPT , jobtyp = JOBTYP, jbtp101 = JBTP101, pwt07=PWT11, discurr = DISCURR))
+js12.data <- subset(js12, select=c(emplen = EMPLEN, age= AGE, sex= SEX , ethukeul = ETHUKEUL , govtor = GOVTOR, hiqul11d = HIQUL11D, sc10mmj = SC10MMJ , inecac05 = INECAC05, ftpt = FTPT , jobtyp = JOBTYP, jbtp101 = JBTP101, pwt07=PWT11, discurr = DISCURR))
+#js11.data <- subset(js11, select=c(emplen, age, sex, ethukeul, govtor, hiqul11d, sc10mmj, inecac05, ftpt, jobtyp, jbtp101, pwt07=pwt10, discurr))
+od12.data <- subset(od12, select=c(emplen = EMPLEN, age= AGE, sex= SEX , ethukeul = ETHUKEUL , govtor = GOVTOR, hiqul11d = HIQUL11D, sc10mmj = SC10MMJ , inecac05 = INECAC05, ftpt = FTPT , jobtyp = JOBTYP, jbtp101 = JBTP101, pwt07=PWT11, discurr = DISCURR))
+#od11.data <- subset(od11, select=c(emplen, age, sex, ethukeul, govtor, hiqul11d, sc10mmj, inecac05, ftpt, jobtyp, jbtp101, pwt07=pwt10, discurr))
+js13.data <- subset(js13, select=c(emplen = EMPLEN, age= AGE, sex= SEX , ethukeul = ETHUKEUL , govtor = GOVTOR, hiqul11d = HIQUL11D, sc10mmj = SC10MMJ , inecac05 = INECAC05, ftpt = FTPT , jobtyp = JOBTYP, jbtp101 = JBTP101, pwt07=PWT11, discurr = DISCURR13))
+od13.data <- subset(od13, select=c(emplen = EMPLEN, age= AGE, sex= SEX , ethukeul = ETHUKEUL , govtor = GOVTOR, hiqul11d = HIQUL11D, sc10mmj = SC10MMJ , inecac05 = INECAC05, ftpt = FTPT , jobtyp = JOBTYP, jbtp101 = JBTP101, pwt07=PWT11, discurr = DISCURR13))
+jm12.data <- subset(jm12, select=c(emplen = emplen, age= age, sex= sex , ethukeul = ethukeul , govtor = govtor, hiqul11d = hiqul11d, sc10mmj = sc10mmj , inecac05 = INECAC05, ftpt = ftpt , jobtyp = jobtyp, jbtp101 = jbtp101, pwt07=PWT11, discurr = discurr))
+
+
+
+measurement(aj12.data$age) <- "interval"
+measurement(aj13.data$age) <- "interval"
+#measurement(aj11.data$age) <- "interval"
+measurement(jm13.data$age) <- "interval"
+measurement(jm12.data$age) <- "interval"
+measurement(js12.data$age) <- "interval"
+measurement(js13.data$age) <- "interval"
+measurement(od12.data$age) <- "interval"
+measurement(od13.data$age) <- "interval"
+
+measurement(aj12.data$pwt07) <- "interval"
+measurement(aj13.data$pwt07) <- "interval"
+#measurement(aj11.data$pwt07) <- "interval"
+measurement(jm12.data$pwt07) <- "interval"
+measurement(jm13.data$pwt07) <- "interval"
+measurement(js12.data$pwt07) <- "interval"
+measurement(js13.data$pwt07) <- "interval"
+measurement(od12.data$pwt07) <- "interval"
+measurement(od13.data$pwt07) <- "interval"
+
+pooled12 <- rbind(as.data.frame(jm12.data),
+                    as.data.frame(aj12.data),
+                    as.data.frame(js12.data),
+                    as.data.frame(od12.data), 
+                  as.data.frame(aj13.data),
+                    as.data.frame(jm13.data),
+                    as.data.frame(js13.data),
+                    as.data.frame(od13.data))
+pooled12$jobtmp <- recode(pooled12$jbtp101, 
+                          "Seasonal work" <- c("seasonal work", "Seasonal work"),
+                          "Contract for fixed period, fixed task" <- c("contract for fixed period or fixed task", "Contract for fixed period or fixed task", "Done under contract for a fixed period or for a fixed task"),
+                          "Agency temping" <- c("working for employment agency", "Working for an employment agency", "Working for employment agency"),
+                          "Casual work" <- c("casual type of work", "Casual type of work"), 
+                          "Not permanent in some other way" <- c("some other way","Some other way", "Or was there some other way that it was not permanent" ))
+pooled1213 <- pooled12[,c(1:10,12:14)]
+pooled129b <- subset(pooled1213, emplen == "Less than 3 months")
+pooled129b <- subset(pooled129b, age < 65)
+
+pooled129b$sc10mmj <- recode(pooled129b$sc10mmj, 
+     "Managers, Directors and Senior Officials" <- 
+          c("Managers, Directors and Senior Officials", 
+            "1  'Managers, Directors And Senior Officials'", 
+            "Managers, Directors And Senior Officials"), 
+     "Professional Occupations" <- 
+          c("Professional Occupations", 
+            "2  'Professional Occupations'"),
+     "Associate Professional and Technical Occupations" <- 
+          c("Associate Professional and Technical Occupations", 
+            "3  'Associate Professional And Technical Occupations", 
+            "Associate Professional And Technical Occupations"),
+     "Administrative and Secretarial Occupations " <- 
+       c("Administrative and Secretarial Occupations", 
+         "4  'Administrative And Secretarial Occupations'", 
+         "Administrative And Secretarial Occupations"),
+      "Skilled Trades Occupations" <- 
+       c("Skilled Trades Occupations", 
+         "5  'Skilled Trades Occupations'"), 
+                           "Caring, Leisure and Other Service Occupations" <- c("Caring, Leisure and Other Service Occupations", "6  'Caring, Leisure And Other Service Occupations'", "Caring, Leisure And Other Service Occupations"), 
+                           "Sales and Customer Service Occupations" <- c("Sales and Customer Service Occupations","7  'Sales And Customer Service Occupations'", "Sales And Customer Service Occupations"), 
+                           "Process, Plant and Machine Operatives" <- c("Process, Plant and Machine Operatives", "8  'Process, Plant And Machine Operatives'", "Process, Plant And Machine Operatives"), 
+                           "Elementary Occupations" <- c("Elementary Occupations", "9  'Elementary Occupations'")
+                           )
+pooled129b$hiqul11d <- recode(pooled129b$hiqul11d, 
+                              "GCSE grades A*-C or equivalent" <- c("GCSE grades A*-C or equivalent", "GCSE grades A-C or equiv"), otherwise="copy")
+  
+pooled96 <- svydesign(~1, data=pooled969b, weights=pooled969b$pwt07)
+pooled06 <- svydesign(~1, data=pooled069b, weights=pooled069b$pwt07)
+pooled09 <- svydesign(~1, data=pooled099b, weights=pooled099b$pwt07)
+pooled12svy <- svydesign(~1, data=pooled129b, weights=pooled129b$pwt07)
+pooled12svy_25 <- subset(pooled12svy, age >24)
+
+```

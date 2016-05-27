@@ -1,0 +1,106 @@
+---
+output: pdf_document
+---
+# Cui Bono? Equitable full employment
+## Data analysis spec
+
+Each chart to compose of three facets.
+
+Covering LFS/APS, DWP admin data and employer based data (Workforce Jobs, ASHE).
+
+This is so can show different data sources telling similar stories in single chart.
+
+Use four time periods where available, 1996-97, 2006-7, 2009-10, 2012-13 so can use bar charts. Alternatively line charts with superimposed rectangles (but bars are easier)
+
+For preference, use pooled LFS, average ASHE, WfJ, DWP so look through random survey issues.
+
+For local and geography can use boxplots and scatterplots with smoothing ribbons.
+
+### Characteristics of new hires
+
+We've been analysing new hires (people starting jobs in the previous 3 months) by occupation and qualification (and region)as part of our skills work.
+
+As we've worked out how to generate datasets of new hires, we can cut them any sensible way (and some not so sensible). 
+
+Using 8 quarter pooled datasets of new hires at UK level, we have done occupation (3-digit at region, 4-digit at national), qualification level.
+
+If we have equivalent pooled datasets for pre-recession, recession and post-recession periods, we can illustrate changes in absolute numbers of new hires, and changes in the breakdowns by:
+
+* age
+* gender
+* ethnicity
+* disability
+* contract type
+* as well as region, qualification and occupation
+* Not sure I want to go into sector - although I trust LFS sectors more than employer-based (the opposite of ONS)
+
+N.B. New hires are weighted to high-turnover occupations, and do include people moving from revious jobs.
+
+#### Employment changes
+
+* Total employment
+* Employees
+* Self-employed
+* Other Flexibility aka agency, etc.
+* Temp
+* Part-time
+* Full-time
+
+* Involuntary part-time
+* Involuntary temp
+
+And as rates.
+
+Chart how much of the change in total employment is due to rise in state pension age.
+
+* Hours of work
+
+* Unemployment
+
+* Inactivity (reasons)
+
+#### Employment flows
+
+We've been analysing hiring rates of the unemployed and the inactive, using published ONS flows data (experimental) and have done some work on the LFS two-quarter datasets these are drawn from.
+
+Using the ONS figures, annual percentage changes in hiring rates of the inactive and the unemployed are pretty much identical over the recession and pre-recession period. 
+
+We want to extend that analysis using the two-quarter LFS longitudinal to show whether or not the patterns of change in hiring are also the same for disadvantaged groups.
+
+
+#### Disadvantaged groups
+
+* Lone parents
+* BME
+* Disabled
+* old
+* young (not in ed)
+* Low quals.
+
+Show trends in hiring rates - although overall employment rate gaps have been closing, is this true for hiring rates?
+
+Are there differences in job quality indicators(temp/perm/hours/casual/pay) by group?
+
+Does the annual rate of change in hiring rates follow the same patterns - or do they diverge.
+
+### Geography
+
+[Violinplots of LA within regions](http://docs.ggplot2.org/current/geom_violin.html)
+
+Look at the [Paul Ormerod analysis - stability of local authority level unemployment relativities/differentials over time](http://www.paulormerod.com/how-sticky-is-unemployment-will-it-take-three-years-to-fall/).
+
+An initial look (involving downloading a truly massive file from NOMIS) shows that he's got a point, though there are some tweaks.
+
+Visualising the issue in reasonably compact form looks tricky. Hence the idea of using violinplots. I think one showing the patterns of absolute claimant count rates within regions (model-based unemployment would be a little better, but doesn't come up to date), for the periods we're looking at, and then a second graphic showing the **relative** claimant count rates (to the UK average). The violin is better than the boxplot for showing whether each region has an even distribution or whether it's sharply divided between high and low unemployment authorities. The claimant count rates here are populationj-based rather than workforce-based, which covers the issue of inactivity to an extent.
+
+In principle can do the same thing for total DWP working age benefits - which would be useful.
+
+
+
+
+
+
+
+
+
+

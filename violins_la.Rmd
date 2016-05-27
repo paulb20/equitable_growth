@@ -1,0 +1,81 @@
+---
+output: html_document
+---
+Patterns of change at local authority level
+========================================================
+
+This section shows the patterns of change across regions and local authorities.
+
+The regional level changes can be simply shown by parallel co-ordinate plots, showing how regional employment, unemployment and inactivity rates have changed place over time.
+
+The local authority level plots look at the pattern within regions. In most cases, the variation within each region is greater than that between regions. 
+
+```{r required_libraries, echo=FALSE, message=FALSE, warning=FALSE}
+library(XLConnect)
+library(ggplot2)
+library(ggthemes)
+library(reshape)
+library(memisc)
+```
+
+We have analysed the changed distributions of claimant unemployment within regions. 
+
+The chart shows that, in 1992, at the height of the recession, in each region, there was high dispersion between claimant rates (proportion of population). 
+
+By 1997, overall claimant rates had fallen in each region, but in virtually all cases, the pattern of dispersion within the region had remained unchanged. 
+
+Between 1997 and the onset of the recession, which we have here taken as November 2007 - the lowest point for claimant count rates in the North East, which was affected earlier than other regions by the collapse on Northern Rock, claimant count rates had fallen further. However, the most noticeable feature is that in each region, there was a very considerable compression of the distribution of claimant count rates.
+
+Therefore, one of the key features of the Labour period was a very substantial reduction in the range of claimant count rates between local authorities. 
+
+The period since the start of the recession has been divided into four. 
+
+1. The recession itself until responses like Future Jobs Fund took effect in October 2009. 
+2. The Labour stimulus period from then to the election.
+3. The austerity period until February 2012.
+4. The subsequent period when austerity was loosened, to date (August 2013).
+
+In the first period, unemployment rose everywhere, but there was also an increase in the dispersion within regions. In most, but not all regions, the dispersion in claimant count rates remained below the 1992-1997 levels. 
+
+In the second period, most regions saw a small improvement in claimant count rates, with little change to dispersion between authorities within region.
+
+In the third, austerity period, unemployment raose and also there was a distinct increase in dispersion within region. However, the extremes of the 1992-97 period have not returned.
+
+In the most recent period, most regions have shown small declines in unemployment, although in most cases this has been due to larger numbers of authorities moving to lower rates, rather than the range decreasing. The pattern within regions has thus been increasingly 'bottom-heavy' while the range remains at a similar level.
+
+```{r load_data, echo=FALSE, message=FALSE, warning=FALSE}
+la_data <- readWorksheetFromFile("LA claimant rates2.xlsx", sheet="Sheet 1", startRow=10, endRow=416)
+colnames(la_data) <- c("District", "Region", "Apr 92", "May 97", "Nov 07", "Oct 09", "May 10", "Feb 12", "Mar 14")
+la_data2 <- melt(la_data)
+la_data2$Government <- recode(la_data2$variable,
+                              "Conservative" <- c("Apr 92", "May 97"),
+                              "Labour" <- c("Nov 07", "Oct 09", "May 10"),
+                              "Coalition" <-c("Feb 12", "Mar 14"))
+p <- ggplot(la_data2, aes(x=variable, y=value, fill=Government))
+northern <- c("North East", "North West", "Yorkshire and the Humber", "Scotland", "Wales", "Northern Ireland")
+southern <- c("East Midlands", "East of England", "London", "South East", "South West", "West Midlands")
+pnorthern <- ggplot(subset(la_data2, Region %in% northern), aes(x=variable, y=value, fill=Government))
+psouthern <- ggplot(subset(la_data2, Region %in% southern), aes(x=variable, y=value, fill=Government))
+
+```
+
+```{r overall_violins, dev=c('CairoPNG'), fig.width=8, fig.height=6, message=FALSE, warning=FALSE, echo=FALSE}
+p + geom_violin() + theme_bw() + scale_fill_manual(values=c("blue", "red1", "cyan")) + theme(legend.position="top") + geom_boxplot(width=.1, fill="black", outlier.colour=NA) + stat_summary(fun.y=median, geom="point", fill="white", shape=21, size=2.5) + ggtitle("JSA claimant count proportions of population by local authority, 1992-2013") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + xlab("Date") + ylab("Claimant count proportion")
+
+```
+
+
+```{r region_violins, dev=c('CairoPNG'), fig.width=8.27, fig.height=11.27, message=FALSE, warning=FALSE, echo=FALSE}
+p + geom_violin() + facet_wrap( ~ Region) + theme(legend.position="top") + scale_fill_manual(values=c("blue", "red1", "cyan")) + theme_bw() + geom_boxplot(width=.1, fill="black", outlier.colour=NA) + stat_summary(fun.y=median, geom="point", fill="white", shape=21, size=2.5) + ggtitle("JSA claimant count proportions of population within region, 1992-2014") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + xlab("Date") + ylab("Claimant count proportion")
+
+violin_northern <- pnorthern + geom_violin() + facet_wrap( ~ Region) + theme(legend.position="top") + scale_fill_manual(values=c("blue", "red1", "cyan")) + theme_bw() + geom_boxplot(width=.1, fill="black", outlier.colour=NA) + stat_summary(fun.y=median, geom="point", fill="white", shape=21, size=2.5) + ggtitle("JSA claimant count proportions of population \nwithin region, nations and North of England, 1992-2014") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + xlab("Date") + ylab("Claimant count proportion")
+
+violin_southern <- psouthern + geom_violin() + facet_wrap( ~ Region) + theme(legend.position="top") + scale_fill_manual(values=c("blue", "red1", "cyan")) + theme_bw() + geom_boxplot(width=.1, fill="black", outlier.colour=NA) + stat_summary(fun.y=median, geom="point", fill="white", shape=21, size=2.5) + ggtitle("JSA claimant count proportions of population \nwithin region, Midlands and Southern England, 1992-2014") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + xlab("Date") + ylab("Claimant count proportion")
+
+```
+
+Technical note: This chart is known as a 'violin plot'. it summarises the pattern of claimant rates within each region using a density estimate that identifies cases where a region can have a group of low unemployment authorities and a group of high unemployment authorities, with smaller numbers in the middle. London is something of a case in point. Superimposed on the violin is a boxplot showing the range of the central 50% of authorities within each region, together with a dot showing the median authority.

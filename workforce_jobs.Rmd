@@ -1,0 +1,42 @@
+---
+output: html_document
+---
+Changes to workforce jobs
+========================================================
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring web pages (click the **MD** toolbar button for help on Markdown).
+
+When you click the **Knit HTML** button a web page will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+library(XLConnect)
+library(ggplot2)
+library(ggthemes)
+library(zoo)
+library(reshape)
+library(scales)
+```
+
+Let's load the first data file.
+
+```{r}
+wb <- loadWorkbook("F:/R&C/Data/Recession_watch/all_regions/lms_16_10_2013/jobs01sep2013_tcm77-327298.xls")
+jobs01 <- readWorksheet(wb, sheet=1, startRow=7, startCol=1, endRow=223, endCol=7, header=FALSE)
+colnames(jobs01) <- c("Date", "Blank", "Workforce", "Employee", "Self-employed", "HM_forces", "Gov_trainees")
+empjobs <- tail(jobs01[,c(1,4)],24)
+empjobs.z <- zooreg(empjobs[,2], start=c(2007,3), frequency=4)
+empjobsindex <- (empjobs.z/coredata(empjobs.z[1,]))*100
+empjobsdiff <- (diff(empjobs.z, arithmetic=FALSE))-1
+empjobsall <- merge.zoo(empjobs.z, empjobsindex, empjobsdiff)
+empjobsfortify <- fortify(empjobsall)
+colnames(empjobsfortify) <- c("Index","Employee Jobs","Sept 2007=100", "Quarterly change %" )
+
+```
+
+You can also embed plots, for example:
+
+```{r fig.width=7, fig.height=6}
+p <- ggplot(melt(empjobsfortify, id="Index"), aes(x=Index, y=value, group=variable)) + geom_line(colour="salmon")
+p <- p + facet_wrap(~variable, scales="free") + theme_economist()
+```
+

@@ -1,0 +1,125 @@
+---
+output: html_document
+---
+Hiring rates by group over time
+========================================================
+
+This attempts to replicate the ONS flows analysis over time, but for disadvantaged groups rather than simply for unemployed and inactive. 
+
+The aim is to find out whether gaps in hiring rates have opened up under the coalition.
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE, cache=TRUE}
+porfiles <- list.files("K:/data/LFS/2-quarter", pattern = glob2rx("*.por"), recursive=TRUE, full.names=TRUE, include.dirs=TRUE)
+savfiles <- list.files("K:/data/LFS/2-quarter", pattern = glob2rx("*.sav"), recursive=TRUE, full.names=TRUE, include.dirs=TRUE)
+savfiles_short <- list.files("K:/data/LFS/2-quarter", pattern = glob2rx("*.sav"), recursive=TRUE)
+library(memisc)
+library(survey)
+library(zoo)
+library(ggplot2)
+
+```
+
+You can also embed plots, for example:
+
+```{r, warning=FALSE, message=FALSE}
+porfiles
+savfiles
+porimporters <- lapply(porfiles[9:18], function(x) {spss.portable.file(x)})
+savimporters <- lapply(savfiles, function(x) {spss.system.file(x)})
+needed_variables <- c("flow", "lgwt", 
+                      "durun1", "discurr1", "cured1", "ethcen61", "lequal51", "lequal61", "sex", "govtor1", "ages1", "ten11", "llord1",
+                      "incac052", "ftpt2", "jobtyp2", "jobtmp2", "sc2kmmj2")
+needed_vars_upper <- toupper(needed_variables)
+needed_vars_upper31 <- c(needed_vars_upper[1:4], "CURED81","ETEWEUL1","LEQUL111", "sex", needed_vars_upper[10:16],"Sc102kmj2")
+needed_vars_upper2 <- c(needed_vars_upper[1:4], "CURED81","ETHCEN61","LEQUAL81", "sex", needed_vars_upper[10:16],"SC2KMMJ2")
+needed_vars_uppersc2k <- c(needed_vars_upper2[1:15],"SOC10M2")
+needed_vars_uppersc2k_20 <- c(needed_vars_uppersc2k[1:7], "SEX", needed_vars_uppersc2k[9:15], "SOC10M2")
+needed_vars_upper3 <- c(needed_vars_upper2[1:7], "SEX", needed_vars_upper2[9:16])
+savnames <- c("ss05","sa05","aw05","ws06","ss06","sa06","aw06",
+              "ws07","ss07","sa07", "aw07","aw08","ws08","ss08","sa12",
+              "aw13","ws13","ss13","sa13","ws14","ws09","ss09","sa09",
+              "aw09","sa08","ws10","ss10","sa10","aw10","ws11","ss11")
+
+# The 2007 group
+ws07 <- subset(savimporters[[8]], select= c(
+  flow, lgwt, durun1, discurr1, cured1, ethcen61, sex, govtor1, ages1, ten11, llord1, incac052, ftpt2, jobtyp2, jobtmp2, levqual=lequal61))
+ss07 <- subset(savimporters[[9]], select= c(
+  flow=FLOW, lgwt=LGWT, durun1=DURUN1, discurr1=DISCURR1, cured1=CURED1, ethcen61=ETHCEN61, sex, govtor1=GOVTOR1, ages1=AGES1, ten11=TEN11, llord1=LLORD1, incac052=INCAC052, ftpt2=FTPT2, jobtyp2=JOBTYP2, jobtmp2=JOBTMP2, levqual=LEQUAL61))
+sa07 <- subset(savimporters[[10]], select= c(
+  flow, lgwt, durun1, discurr1, cured1, ethcen61, sex, govtor1, ages1, ten11, llord1, incac052, ftpt2, jobtyp2, jobtmp2, levqual=lequal61))
+aw07 <- subset(savimporters[[11]], select= c(
+  flow=FLOW, lgwt=LGWT, durun1=DURUN1, discurr1=DISCURR1, cured1=CURED1, ethcen61=ETHCEN61, sex, govtor1=GOVTOR1, ages1=AGES1, ten11=TEN11, llord1=LLORD1, incac052=INCAC052, ftpt2=FTPT2, jobtyp2=JOBTYP2, jobtmp2=JOBTMP2, levqual=LEQUAL61))
+measurement(ws07$lgwt) <- "interval"
+measurement(ss07$lgwt) <- "interval"
+measurement(sa07$lgwt) <- "interval"
+measurement(aw07$lgwt) <- "interval"
+
+ws10 <- subset(savimporters[[26]], select= c(
+  flow=FLOW, lgwt=LGWT, durun1=DURUN1, discurr1=DISCURR1, cured1=CURED81, ethcen61=ETHCEN61, sex, govtor1=GOVTOR1, ages1=AGES1, ten11=TEN11, llord1=LLORD1, incac052=INCAC052, ftpt2=FTPT2, jobtyp2=JOBTYP2, levqual=LEQUAL81))
+ss10 <- subset(savimporters[[27]], select= c(
+  flow=FLOW, lgwt=LGWT, durun1=DURUN1, discurr1=DISCURR1, cured1=CURED81, ethcen61=ETHCEN61, sex, govtor1=GOVTOR1, ages1=AGES1, ten11=TEN11, llord1=LLORD1, incac052=INCAC052, ftpt2=FTPT2, jobtyp2=JOBTYP2, levqual=LEQUAL81))
+sa10 <- subset(savimporters[[28]], select= c(
+  flow=FLOW, lgwt=LGWT, durun1=DURUN1, discurr1=DISCURR1, cured1=CURED81, ethcen61=ETHCEN61, sex, govtor1=GOVTOR1, ages1=AGES1, ten11=TEN11, llord1=LLORD1, incac052=INCAC052, ftpt2=FTPT2, jobtyp2=JOBTYP2, levqual=LEQUAL81))
+
+aw10 <- subset(savimporters[[29]], select= c(
+  flow=FLOW, lgwt=LGWT, durun1=DURUN1, discurr1=DISCURR1, cured1=CURED81, ethcen61=ETHCEN61, sex, govtor1=GOVTOR1, ages1=AGES1, ten11=TEN11, llord1=LLORD1, incac052=INCAC052, ftpt2=FTPT2, jobtyp2=JOBTYP2, levqual=LEQUAL81))
+
+measurement(ws10$lgwt) <- "interval"
+measurement(ss10$lgwt) <- "interval"
+measurement(sa10$lgwt) <- "interval"
+measurement(aw10$lgwt) <- "interval"
+
+ss13 <- subset(savimporters[[27]], select= c(
+  flow=FLOW, lgwt=LGWT, durun1=DURUN1, discurr1=DISCURR1, cured1=CURED81, ethcen61=ETHEW181, sex=SEX, govtor1=GOVTOR1, ages1=AGES1, ten11=TEN11, llord1=LLORD1, incac052=INCAC052, ftpt2=FTPT2, jobtyp2=JOBTYP2, levqual=LEQUL111))
+
+sa13 <- subset(savimporters[[30]], select= c(
+  flow=FLOW, lgwt=LGWT, durun1=DURUN1, discurr1=DISCURR1, cured1=CURED81, ethcen61=ETHEW181, sex=SEX, govtor1=GOVTOR1, ages1=AGES1, ten11=TEN11, llord1=LLORD1, incac052=INCAC052, ftpt2=FTPT2, jobtyp2=JOBTYP2, levqual=LEQUL111))
+
+aw13 <- subset(savimporters[[31]], select= c(
+  flow=FLOW, lgwt=LGWT, durun1=DURUN1, discurr1=DISCURR1, cured1=CURED81, ethcen61=ETHEW181, sex=SEX, govtor1=GOVTOR1, ages1=AGES1, ten11=TEN11, llord1=LLORD1, incac052=INCAC052, ftpt2=FTPT2, jobtyp2=JOBTYP2, levqual=LEQUL111))
+
+ws14 <- subset(savimporters[[29]], select= c(
+  flow=FLOW, lgwt=LGWT, durun1=DURUN1, discurr1=DISEA1, cured1=CURED81, ethcen61=ETHEW181, sex=SEX, govtor1=GOVTOR1, ages1=AGES1, ten11=TEN11, llord1=LLORD1, incac052=INCAC052, ftpt2=FTPT2, jobtyp2=JOBTYP2, levqual=LEQUL111))
+
+measurement(ws12$lgwt) <- "interval"
+measurement(ss12$lgwt) <- "interval"
+measurement(sa12$lgwt) <- "interval"
+measurement(ws13$lgwt) <- "interval"
+
+ws07df <- as.data.frame(ws07)
+ss07df <- as.data.frame(ss07)
+sa07df <- as.data.frame(sa07)
+aw07df <- as.data.frame(aw07)
+
+df07 <- rbind(ws07df, ss07df, sa07df, aw07df)
+
+ws10df <- as.data.frame(ws10)
+ss10df <- as.data.frame(ss10)
+sa10df <- as.data.frame(sa10)
+aw10df <- as.data.frame(aw10)
+
+df10 <- rbind(ws10df, ss10df, sa10df, aw10df)
+
+
+ss13df <- as.data.frame(ss13)
+sa13df <- as.data.frame(sa13)
+aw13df <- as.data.frame(aw13)
+ws14df <- as.data.frame(ws14)
+
+df13 <- rbind(ss13df, sa13df, aw13df, ws14df)
+
+df07 <- subset(df07, ages1 %in% c("16-19", "20-24", "25-29", "30-34", "35-39", "40-44","45-49", "50-54", "55-59", "60-64"))
+
+df10 <- subset(df10, ages1 %in% c("16-19", "20-24", "25-29", "30-34", "35-39", "40-44","45-49", "50-54", "55-59", "60-64"))
+
+df13 <- subset(df13, ages1 %in% c("16-19", "20-24", "25-29", "30-34", "35-39", "40-44","45-49", "50-54", "55-59", "60-64", "16-19yrs", "20-24yrs", "25-29yrs","30-34yrs","35-39yrs","40-44yrs","45-49yrs",
+                                  "50-54yrs","55-59yrs","60-64yrs"))
+
+svy07 <- svydesign(~1, data=df07, weights= df07$lgwt)
+svy10 <- svydesign(~1, data=df10, weights= df10$lgwt)
+svy13 <- svydesign(~1, data=df13, weights= df13$lgwt)
+
+svytable(~flow + sex, svy13)
+
+```
+
