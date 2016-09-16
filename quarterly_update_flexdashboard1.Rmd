@@ -1,0 +1,235 @@
+---
+title: "Learning and Work Quarterly Update"
+output: 
+  flexdashboard::flex_dashboard
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(jsonlite)
+library(dplyr)
+library(tidyr)
+library(xts)
+library(forecast)
+library(dygraphs)
+library(metricsgraphics)
+library(OECD)
+library(forcats)
+library(ggplot2)
+lzvb <- fromJSON("http://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/labourproductivity/timeseries/lzvb/prdy/data")
+lzvb <- zooreg(as.numeric(lzvb$quarter$value), start=c(1971,1), frequency = 4)
+OECD_PDB_LV <- get_dataset("PDB_LV", filter = "/CAN+FRA+DEU+ITA+JPN+GBR+USA+EA19+EU28+G-7+OECD.T_GDPPOP+T_GDPHRS.CPC",start_time = 2013, end_time = 2015, pre_formatted = TRUE)
+OECD_PDB_LV2 <- OECD_PDB_LV[OECD_PDB_LV$SUBJECT == "T_GDPHRS",]
+OECD_PDB_LV2 <- OECD_PDB_LV2[OECD_PDB_LV2$obsTime == "2014",]
+OECD_PDB_LV2$LOCATION <- fct_reorder(OECD_PDB_LV2$LOCATION, OECD_PDB_LV2$obsValue)
+lf24 <- fromJSON("http://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/lf24/lms/data")
+lf24 <- zooreg(as.numeric(lf24$month$value), start=c(1971,1), frequency = 12)
+mgrz <- fromJSON("http://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/employmentandemployeetypes/timeseries/mgrz/lms/data")
+mgrz <- zooreg(as.numeric(mgrz$month$value), start=c(1971,1), frequency = 12)
+#Unemployed
+mgsc <- fromJSON("http://www.ons.gov.uk/employmentandlabourmarket/peoplenotinwork/unemployment/timeseries/mgsc/unem/data")
+mgsc <- zooreg(as.numeric(mgsc$month$value), start=c(1971,1), frequency = 12)
+
+
+
+load("F:/R&C/Data/Quarterly update/equitable_LM_TUC_Data_analysis/.RData")
+```
+
+Headlines {.storyboard}
+======================================================
+
+### Employment. The __employment rate__ is `r I(round(tail(lf24,1),1)) `%, (__up__ `r I(round(diff(tail(lf24,2), lag=1),1)) ` percentage points on last month&#146;s published figure and __up__ `r I(round(diff(tail(lf24,4), lag=3),1))` percentage points in the preferred quarterly measure). 
+
+```{r}
+dygraph(as.xts(lf24, as.yearmon(index(lf24)))) %>% 
+  dyRangeSelector(dateWindow = c("2006-03-01", "2016-06-01"))
+```
+
+***
+
+Employment rose by `r format(diff(tail(mgrz,4), lag=3)*1000, big.mark = ",")` on last quarter's figure, to `r format(tail(mgrz,1)*1000, big.mark=",")`. 
+
+The employment rate rose by `r round(diff(tail(lf24,4), lag=3),1)` percentage points over the quarter, to `r tail(lf24,1)`%. 
+
+### Productivity. The UK has the second lowest output per hour worked in the G7 group of developed countries
+
+```{r}
+OECD_PDB_LV2 %>%
+  mjs_plot(y=LOCATION, x=obsValue, width=500, height=400) %>%
+  mjs_bar() %>%
+  mjs_axis_x(xax_format = 'plain')
+
+```
+
+***
+
+The UK's productivity per hour worked was $`r I(round(OECD_PDB_LV2[OECD_PDB_LV2$LOCATION == "GBR","obsValue"],2))` in 2014. This was lower than that for the G7 countries as a whole (at $`r I(round(OECD_PDB_LV2[OECD_PDB_LV2$LOCATION == "G-7","obsValue"],2))`), for the EU as a whole ($`r I(round(OECD_PDB_LV2[OECD_PDB_LV2$LOCATION == "EU28","obsValue"],2))`) and the Euro Area ($`r I(round(OECD_PDB_LV2[OECD_PDB_LV2$LOCATION == "EA19","obsValue"],2))`).
+
+Before the recession, productivity in the UK was rising steadily. Since the recession, output per hour worked has not reurned to the same level that it was in the fourth quarter or 2007, let alone returned to steady growth.
+
+Productivity in the UK has recovered from the immediate effects of the 2008 recession, but suffered a further decline from 2011 to 2013. Only in the latest yeas has productivity returned to 2007 levels.
+
+If productivity had returned to it's pre-2007 growth pattern, it would be very much higher than it is in the latest figures.
+
+### Skills
+
+```{r}
+
+```
+
+
+
+Employment {.storyboard}
+======================================================
+
+Employment rates and gaps
+-----------------------------------------------------------------------
+
+### Employment rate
+
+```{r}
+dygraph(as.xts(zoodisgroups$Working.age.16.64, as.yearqtr(index(zoodisgroups)))) %>% 
+  dyRangeSelector(dateWindow = c("2006-03-01", "2016-06-01"))
+```
+
+***
+
+The employment rate has reached a new record.
+
+
+### Disability Employment rate gap
+
+```{r}
+dygraph(as.xts(zoodisgroups$Disability.gap, as.yearqtr(index(zoodisgroups)))) %>% 
+  dyAxis("y", label = "Gap from overall employment rate", valueRange = c(-40, 5)) %>%
+  dyRangeSelector(dateWindow = c("2006-03-01", "2016-06-01"))
+```
+
+The Disability employment rate gap increased in 2013. This is wholly due to a change in the measure of disability used. The trends were positive (reduction in the gap) both before and after the change.
+
+We have set the y-axis to include a zero gap to show how far behind we are.
+
+### Over-50s Employment rate gap
+
+```{r}
+dygraph(as.xts(zoodisgroups$Plus.50.gap, as.yearqtr(index(zoodisgroups)))) %>% 
+  dyRangeSelector(dateWindow = c("2006-03-01", "2016-06-01"))
+
+```
+
+### Black and Minority Ethnic Employment rate gap
+
+```{r}
+dygraph(as.xts(zoodisgroups$BME.gap, as.yearqtr(index(zoodisgroups)))) %>% 
+  dyRangeSelector(dateWindow = c("2006-03-01", "2016-06-01"))
+
+```
+
+### People with no qualifications Employment rate gap
+
+```{r}
+dygraph(as.xts(zoodisgroups$No.qualifications.gap, as.yearqtr(index(zoodisgroups)))) %>% 
+  dyRangeSelector(dateWindow = c("2006-03-01", "2016-06-01"))
+
+```
+
+### People with level 1 qualifications Employment rate gap
+
+```{r}
+dygraph(as.xts(zoodisgroups$Level.1.gap, as.yearqtr(index(zoodisgroups)))) %>% 
+  dyRangeSelector(dateWindow = c("2006-03-01", "2016-06-01"))
+
+```
+
+### Young people not in full time education Employment rate gap
+
+```{r}
+dygraph(as.xts(zoodisgroups$Young.people.not.FTEd.gap, as.yearqtr(index(zoodisgroups)))) %>% 
+  dyRangeSelector(dateWindow = c("2006-03-01", "2016-06-01"))
+
+```
+
+Productivity {.storyboard}
+==============================================================
+
+### Productivity in the UK. Productivity is measured here as output (GDP) per hour worked, and so takes account of the effect of changes in working hours. Prices are held constant
+
+```{r}
+dygraph(as.xts(lzvb, as.yearqtr(index(lzvb)))) %>% 
+  dyRangeSelector(dateWindow = c("2006-03-01", "2016-06-01"))
+
+```
+
+*** 
+
+Before the recession, productivity in the UK was rising steadily. Since the recession, output per hour worked has not reurned to the same level that it was in the fourth quarter or 2007, let alone returned to steady growth.
+
+Productivity in the UK has recovered from the immediate effects of the 2008 recession, but suffered a further decline from 2011 to 2013. Only in the latest yeas has productivity returned to 2007 levels.
+
+If productivity had returned to it's pre-2007 growth pattern, it would be very much higher than it is in the latest figures.
+
+### International comparisons of Productivity - The UK has the second lowest productivity per hour in the G7 group of developed countries (after Japan)
+
+```{r}
+OECD_PDB_LV2 %>%
+  mjs_plot(y=LOCATION, x=obsValue, width=500, height=400) %>%
+  mjs_bar() %>%
+  mjs_axis_x(xax_format = 'plain')
+
+```
+
+*** 
+
+The UK's productivity per hour worked was $`r I(round(OECD_PDB_LV2[OECD_PDB_LV2$LOCATION == "GBR","obsValue"],2))` in 2014. This was lower than that for the G7 countries as a whole (at $`r I(round(OECD_PDB_LV2[OECD_PDB_LV2$LOCATION == "G-7","obsValue"],2))`), for the EU as a whole ($`r I(round(OECD_PDB_LV2[OECD_PDB_LV2$LOCATION == "EU28","obsValue"],2))`) and the Euro Area ($`r I(round(OECD_PDB_LV2[OECD_PDB_LV2$LOCATION == "EA19","obsValue"],2))`). 
+
+Among the G7 countries, the UK's productivity was only higher than that of Japan.
+
+The productivity figures are measured in US dollars, adjusted by the OECD to 'purchasing power parity'. Figures are sourced from the OECD.
+
+### Forecasts for UK productivity
+
+```{r}
+
+```
+
+***
+
+Some commentary about forecasts for UK Productivity
+
+
+Skills {.storyboard}
+======================================================
+
+### Are we on target to get to 3 million apprenticeship starts?
+
+```{r}
+gauge(Apprenticeship.target.rate, min = 0, max = 200, symbol = '%', gaugeSectors(
+  success = c(100, 200), warning = c(80, 99), danger = c(0, 79)
+))
+
+```
+
+### Apprenticeship starts
+
+
+```{r}
+ggplot(aes(x=Index, y=V1), data=fortify(apprenticeship.starts)) + geom_line()
+
+```
+
+### Forecasts for Apprenticeship starts
+
+```{r}
+ggplot(aes(x=Index, y=V1), data=fortify(apprenticeship.starts)) + geom_line() + geom_forecast(apprenticeship.forecast)
+
+```
+
+
+
+
+### Chart C
+
+```{r}
+
+```
+
